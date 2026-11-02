@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mision Relampago SCADA | Space Apps 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=JetBrains+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0a0e27;--card:rgba(255,255,255,.05);--line:rgba(255,255,255,.12);--green:#00ff88;--cyan:#00d9ff;--txt:#e6e9f5;--mute:#9aa3c7;--warn:#ffd166;--red:#ff5d73}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:'IBM Plex Sans',sans-serif;line-height:1.6}
+  #bar{position:fixed;top:0;left:0;height:4px;background:var(--green);width:0;z-index:9}
+  main{max-width:880px;margin:0 auto;padding:32px 18px 80px}
+  h1,h2{font-family:'Orbitron',sans-serif}
+  h1{font-size:1.9rem;color:var(--green);margin:.2em 0}
+  h2{font-size:1.15rem;color:var(--cyan);margin:0 0 .6em}
+  .tag{font-family:'JetBrains Mono',monospace;color:var(--mute);font-size:.85rem}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin:20px 0;backdrop-filter:blur(6px)}
+  .goal{border-color:var(--green)}
+  .timer{display:inline-block;font-family:'JetBrains Mono',monospace;background:rgba(0,217,255,.12);color:var(--cyan);border:1px solid var(--cyan);border-radius:20px;padding:2px 12px;font-size:.8rem;margin-left:8px;vertical-align:middle}
+  .mini{border-left:4px solid var(--green);padding:10px 14px;margin:14px 0;background:rgba(0,255,136,.06);border-radius:0 10px 10px 0}
+  .mini b{color:var(--green)}
+  .pro{border-left-color:var(--warn);background:rgba(255,209,102,.07)}
+  .pro b{color:var(--warn)}
+  pre{position:relative;background:#050816;border:1px solid var(--line);border-radius:10px;padding:14px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:.82rem;line-height:1.5}
+  button.copy{position:absolute;top:8px;right:8px;background:var(--cyan);color:#001;border:0;border-radius:6px;padding:4px 10px;font-family:'JetBrains Mono',monospace;font-size:.72rem;cursor:pointer}
+  table{width:100%;border-collapse:collapse;margin:10px 0}
+  th,td{border:1px solid var(--line);padding:8px;text-align:left;font-size:.9rem}
+  th{color:var(--cyan)}
+  td.w{height:34px}
+  ul,ol{padding-left:20px}
+  label{display:block;margin:6px 0}
+  code{font-family:'JetBrains Mono',monospace;color:var(--green);font-size:.9em}
+  footer{color:var(--mute);font-size:.8rem;text-align:center;margin-top:40px}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<main>
+
+<p class="tag">NASA SPACE APPS 2026 · SCADA 6° ACPI · ENTRENAMIENTO DE VELOCIDAD</p>
+<h1>MISION RELAMPAGO: PANEL DE SALUD</h1>
+<p>En el hackathon no gana el que sabe mas: gana el que arma rapido y sin trabarse. Hoy entrenamos eso.</p>
+
+<div class="card goal">
+  <h2>Objetivo</h2>
+  <p>Al terminar vas a poder <b>armar en Node-RED, en minutos, un panel de signos vitales con semaforo, MQTT y check-in</b>, y vas a saber cuanto tardaste en cada paso para bajar ese tiempo la proxima vez.</p>
+  <p><b>La analogia:</b> es como un pit stop de Formula 1. El auto ya sabe correr; lo que se entrena es cambiar las cuatro ruedas en segundos. Hoy cronometramos nuestro "pit stop" de SCADA.</p>
+</div>
+
+<div class="card">
+  <h2>Reglas del juego</h2>
+  <ul>
+    <li><b>Parejas:</b> uno es <b>piloto</b> (maneja el teclado) y otro <b>copiloto</b> (lee la guia y controla el reloj). Se cambian en cada ronda.</li>
+    <li><b>Cronometro:</b> el copiloto anota el tiempo de cada ronda en la tabla del final.</li>
+    <li><b>Prohibido copiar y pegar el flow de rescate</b> antes de intentarlo por su cuenta. Es el paracaidas, no el avion. Si pasan el tiempo limite, lo usan y anotan "rescate".</li>
+    <li><b>Dashboard:</b> se ve en <code>http://localhost:1880/ui</code> (o la IP de la compu donde corre Node-RED).</li>
+  </ul>
+  <p class="tag">Necesitan tener instalado node-red-dashboard (menu, Manage palette, Install).</p>
+</div>
+
+<div class="card">
+  <h2>RONDA 1: Pulso en pantalla <span class="timer">meta: 10 min</span></h2>
+  <p>Armar este camino: <b>inject (cada 2 s) → function → gauge</b>.</p>
+  <pre><button class="copy">copiar</button>// Nodo function: simula un pulso entre 65 y 80
+msg.payload = Math.round(65 + Math.random() * 15);
+return msg;</pre>
+  <div class="mini"><b>Mini-mision:</b> gauge de 40 a 140 lpm que se actualice solo. Mostralo en <code>/ui</code>.</div>
+</div>
+
+<div class="card">
+  <h2>RONDA 2: Semaforo personal <span class="timer">meta: 15 min</span></h2>
+  <p>Un valor "alto" depende de cada persona. Compara contra la <b>linea base</b>, no contra un numero fijo.</p>
+  <pre><button class="copy">copiar</button>// Nodo function: semaforo para un solo valor
+const base = 70;                                    // linea base del astronauta
+const desvio = Math.abs(msg.payload - base) / base * 100;   // % de desvio
+
+if (desvio &lt;= 10)      { msg.estado = "VERDE";    msg.color = "#00e676"; }
+else if (desvio &lt;= 20) { msg.estado = "AMARILLO"; msg.color = "#ffd600"; }
+else                   { msg.estado = "ROJO";     msg.color = "#ff5252"; }
+return msg;</pre>
+  <p>Mostralo con un nodo <b>ui_template</b>:</p>
+  <pre><button class="copy">copiar</button>&lt;div style="text-align:center;font-size:30px;font-weight:bold;padding:14px;
+            border-radius:14px;color:#000;background:{{msg.color}}"&gt;
+  {{msg.estado}}
+&lt;/div&gt;</pre>
+  <div class="mini"><b>Mini-mision:</b> agrega un <b>slider</b> de "estres" (0 a 100) que haga subir el pulso simulado: <code>70 + estres * 0.4</code>. Mueve el slider y mira cambiar el color.</div>
+  <div class="mini pro"><b>Ojo:</b> los porcentajes son didacticos, no medicos. En el pitch se dice siempre.</div>
+</div>
+
+<div class="card">
+  <h2>RONDA 3: MQTT, la nave habla <span class="timer">meta: 15 min</span></h2>
+  <p>Hasta ahora todo pasa dentro de una sola compu. En una nave real el sensor y el panel estan separados: se comunican por MQTT. Es como una radio: uno transmite en una frecuencia (topico) y otro la sintoniza.</p>
+  <ol>
+    <li>Despues de la function que simula, agrega un nodo <b>mqtt out</b>. Broker: <code>broker.hivemq.com</code>, puerto <code>1883</code>.</li>
+    <li>Topico (cambia <i>equipoX</i> por el nombre de tu equipo, asi no se mezclan): <code>i9/spaceapps/equipoX/vitales</code></li>
+    <li>Agrega un <b>mqtt in</b> con el mismo broker y topico, y conectalo al semaforo.</li>
+    <li>Para que viaje todo junto, publica un objeto JSON:</li>
+  </ol>
+  <pre><button class="copy">copiar</button>// Nodo function antes del mqtt out
+msg.payload = {
+  pulso: Math.round(65 + Math.random() * 15),
+  spo2: 98,
+  temp: 36.6
+};
+return msg;      // el nodo mqtt out lo convierte a texto JSON solo</pre>
+  <div class="mini"><b>Mini-mision:</b> hagan que el piloto de un equipo <b>publique</b> y la pantalla del equipo de al lado <b>reciba</b>. Cambien el topico por el del companero.</div>
+  <div class="mini pro"><b>Plan B sin internet:</b> el broker publico necesita conexion. Si falla, instalen mosquitto local en una compu (<code>mosquitto -v</code>) y usen su IP como broker. Esto tambien hay que tenerlo resuelto antes de viajar.</div>
+</div>
+
+<div class="card">
+  <h2>RONDA 4: Check-in del astronauta <span class="timer">meta: 15 min</span></h2>
+  <p>Los datos fisicos no cuentan todo. El desafio habla de aislamiento y salud mental, asi que sumamos un chequeo diario.</p>
+  <ol>
+    <li>Agrega dos nodos <b>ui_slider</b>: <i>Sueno</i> (0 a 10) y <i>Animo</i> (0 a 10).</li>
+    <li>Guarda cada valor con un nodo <b>change</b> en <code>flow.sueno</code> y <code>flow.animo</code>.</li>
+    <li>En la function del semaforo, agrega una <b>regla combinada</b>:</li>
+  </ol>
+  <pre><button class="copy">copiar</button>// Regla combinada: varias senales juntas pesan mas que una sola
+const sueno = flow.get('sueno') ?? 8;
+const animo = flow.get('animo') ?? 8;
+
+if (msg.estado === "VERDE" &amp;&amp; (sueno &lt;= 4 || animo &lt;= 4)) {
+  msg.estado = "AMARILLO";                       // cuerpo bien, pero animo/sueno bajos
+  msg.color = "#ffd600";
+  msg.accion = "Check-in: revisar sueno y animo";
+}
+if (msg.estado === "AMARILLO" &amp;&amp; sueno &lt;= 4 &amp;&amp; animo &lt;= 4) {
+  msg.estado = "ROJO";                           // todo junto: escalar
+  msg.color = "#ff5252";
+  msg.accion = "Alerta: contactar a Tierra";
+}
+return msg;</pre>
+  <div class="mini"><b>Mini-mision:</b> logren que un astronauta con pulso normal pase a AMARILLO solo por dormir mal. Esa es la idea fuerte para el pitch.</div>
+</div>
+
+<div class="card">
+  <h2>RONDA FINAL: Demo de 60 segundos</h2>
+  <p>Cada pareja muestra su panel y cuenta en un minuto: <b>que mide, como decide y que haria el astronauta</b>. El resto del curso levanta la mano si entendio el semaforo sin ayuda. Si alguien no entendio, hay que mejorar la explicacion.</p>
+</div>
+
+<div class="card">
+  <h2>Tabla de tiempos (anotala y bajala la proxima vez)</h2>
+  <table>
+    <tr><th>Ronda</th><th>Meta</th><th>Tiempo real</th><th>¿Rescate? (si/no)</th><th>Que nos trabo</th></tr>
+    <tr><td>1. Pulso en pantalla</td><td>10 min</td><td class="w"></td><td></td><td></td></tr>
+    <tr><td>2. Semaforo</td><td>15 min</td><td class="w"></td><td></td><td></td></tr>
+    <tr><td>3. MQTT</td><td>15 min</td><td class="w"></td><td></td><td></td></tr>
+    <tr><td>4. Check-in</td><td>15 min</td><td class="w"></td><td></td><td></td></tr>
+  </table>
+  <p>Anoten tambien en su <b>glosario personal</b>: <i>broker · topico · publicar/suscribir · payload · linea base · dashboard · regla combinada</i>.</p>
+</div>
+
+<div class="card">
+  <h2>Para el profe</h2>
+  <ul>
+    <li><b>Flow de rescate:</b> archivo <code>flow_salud_astronauta.json</code>. Menu de Node-RED, Import, pegar. Trae simulador, tres gauges, slider de estres, semaforo y grafico. No incluye MQTT ni check-in: eso lo arman ellos.</li>
+    <li><b>Tiempos:</b> las metas suman 55 minutos de rondas; con explicaciones, cambios de pareja y demos entran en 2 horas con margen para imprevistos.</li>
+    <li><b>Atascos tipicos:</b> falta node-red-dashboard (no aparece <code>/ui</code>), broker publico bloqueado por la red del colegio, y topicos que se pisan entre equipos.</li>
+    <li><b>Transferencia:</b> los seis equipos del viaje tienen desafios distintos, pero todos se benefician de practicar Node-RED, MQTT y paneles. La actividad entrena la herramienta, no el desafio.</li>
+    <li><b>Sin probar en el aula:</b> el flow lo valide en estructura y sintaxis, pero no lo corri en una instancia real de Node-RED. Conviene importarlo vos primero.</li>
+  </ul>
+</div>
+
+<footer>Prof. Pablo Limardo – Jefatura ACPI · Escuela Industrial N° 9 "15 de Noviembre"</footer>
+</main>
+
+<script>
+  addEventListener('scroll', function () {
+    var h = document.documentElement;
+    var p = h.scrollTop / (h.scrollHeight - h.clientHeight) * 100;
+    document.getElementById('bar').style.width = p + '%';
+  });
+  document.querySelectorAll('pre').forEach(function (pre) {
+    var btn = pre.querySelector('button.copy');
+    btn.addEventListener('click', function () {
+      var texto = pre.textContent.replace(btn.textContent, '').trim();
+      navigator.clipboard.writeText(texto).then(function () {
+        btn.textContent = 'copiado';
+        setTimeout(function () { btn.textContent = 'copiar'; }, 1500);
+      });
+    });
+  });
+</script>
+</body>
+</html>
